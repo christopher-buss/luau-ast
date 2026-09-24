@@ -7,7 +7,7 @@ export function renderSet(state: RenderState, node: luau.Set) {
 		return "{}";
 	}
 
-	const result = new Array<RenderFragment>("{\n");
+	const result = new Array<RenderFragment>(state.newlineFragment("{"));
 	state.block(() => {
 		luau.list.forEach(node.members, member => {
 			if (luau.isStringLiteral(member) && luau.isValidIdentifier(member.value)) {

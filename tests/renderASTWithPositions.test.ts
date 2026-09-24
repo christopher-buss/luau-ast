@@ -1,4 +1,4 @@
-import luau, { renderAST, renderASTWithPositions } from "LuauAST";
+import luau, { renderAST, renderASTWithPositions, renderNode, RenderState } from "LuauAST";
 
 function renderWithPositions(...statements: Array<luau.Statement>) {
 	const ast = luau.list.make(...statements);
@@ -75,14 +75,16 @@ describe("renderASTWithPositions", () => {
 		]);
 	});
 
-	it("counts columns in UTF-16 code units and CRLF as one line break", () => {
+	it("counts columns in UTF-16 code units and only \\n as a line break", () => {
 		const value = luau.string("😀\r\nnext\"'");
 		const declaration = luau.create(luau.SyntaxKind.VariableDeclaration, { left: luau.id("value"), right: value });
+		const comment = luau.comment("a\rb");
 
-		const { code, rangeOf } = renderWithPositions(declaration);
+		const { code, rangeOf } = renderWithPositions(declaration, comment);
 
-		expect(code).toBe("local value = [[😀\r\nnext\"']]\n");
+		expect(code).toBe("local value = [[😀\r\nnext\"']]\n--a\rb\n");
 		expect(rangeOf(value)).toEqual({ start: { line: 0, column: 14 }, end: { line: 1, column: 8 } });
+		expect(rangeOf(comment)).toEqual({ start: { line: 2, column: 0 }, end: { line: 2, column: 5 } });
 	});
 
 	it("reports multiline comment ranges", () => {
@@ -130,6 +132,34 @@ describe("renderASTWithPositions", () => {
 		expect(rangeOf(map)).toEqual({ start: { line: 0, column: 12 }, end: { line: 2, column: 1 } });
 		expect(rangeOf(key)).toEqual({ start: { line: 1, column: 1 }, end: { line: 1, column: 4 } });
 		expect(rangeOf(member)).toEqual({ start: { line: 4, column: 1 }, end: { line: 4, column: 7 } });
+	});
+
+	it("excludes spacing around long bracket strings from ranges", () => {
+		const key = luau.string("a\nb");
+		const map = luau.map([[key, luau.number(1)]]);
+
+		const { code, rangeOf } = renderWithPositions(
+			luau.create(luau.SyntaxKind.VariableDeclaration, { left: luau.id("map"), right: map }),
+		);
+
+		expect(code).toBe("local map = {\n\t[ [[a\nb]] ] = 1,\n}\n");
+		expect(rangeOf(key)).toEqual({ start: { line: 1, column: 3 }, end: { line: 2, column: 3 } });
+	});
+
+	it("includes semicolons added between statements in ranges", () => {
+		const first = luau.create(luau.SyntaxKind.CallStatement, { expression: luau.call(luau.id("f")) });
+		const second = luau.create(luau.SyntaxKind.CallStatement, {
+			expression: luau.call(
+				luau.create(luau.SyntaxKind.ParenthesizedExpression, {
+					expression: luau.binary(luau.id("a"), "or", luau.id("b")),
+				}),
+			),
+		});
+
+		const { code, rangeOf } = renderWithPositions(first, second);
+
+		expect(code).toBe("f();\n(a or b)()\n");
+		expect(rangeOf(first)).toEqual({ start: { line: 0, column: 0 }, end: { line: 0, column: 4 } });
 	});
 
 	it("reports closing keywords after indentation", () => {
@@ -249,7 +279,7 @@ describe("renderASTWithPositions", () => {
 		expect(() => renderASTWithPositions(ast)).toThrow("Cannot render statement after break, continue, or return!");
 	});
 
-	it("renders long and deeply nested trees without exhausting the stack", () => {
+	it("renders long statement lists and elseif chains without exhausting the stack", () => {
 		const statements = Array.from({ length: 10_000 }, (_, i) => luau.comment(` line ${i}`));
 
 		let alternative: luau.Expression = luau.nil();
@@ -272,6 +302,22 @@ describe("renderASTWithPositions", () => {
 			start: { line: 9_999, column: 0 },
 			end: { line: 9_999, column: 12 },
 		});
+	});
+});
+
+describe("renderNode", () => {
+	it("only creates strings when positions are not requested", () => {
+		const statement = luau.create(luau.SyntaxKind.DoStatement, {
+			statements: luau.list.make<luau.Statement>(
+				luau.create(luau.SyntaxKind.VariableDeclaration, {
+					left: luau.id("value"),
+					right: luau.map([[luau.string("a\nb"), emptyFunction()]]),
+				}),
+				luau.comment("a\n\nb"),
+			),
+		});
+
+		expect(typeof renderNode(new RenderState(), statement)).toBe("string");
 	});
 });
 

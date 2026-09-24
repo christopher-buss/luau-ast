@@ -7,7 +7,7 @@ export function renderMixedTable(state: RenderState, node: luau.MixedTable) {
 		return "{}";
 	}
 
-	const result = new Array<RenderFragment>("{\n");
+	const result = new Array<RenderFragment>(state.newlineFragment("{"));
 	state.block(() => {
 		// temp fix for https://github.com/microsoft/TypeScript/issues/42932
 		luau.list.forEach(node.fields, field =>
