@@ -56,25 +56,14 @@ function flattenFragment(fragment) {
     const positions = new Array();
     let line = 0;
     let column = 0;
-    let previousWasCarriageReturn = false;
     const advance = (text) => {
         for (let i = 0; i < text.length; i++) {
-            const character = text.charCodeAt(i);
-            if (character === 13) {
+            if (text.charCodeAt(i) === 10) {
                 line++;
                 column = 0;
-                previousWasCarriageReturn = true;
-            }
-            else if (character === 10) {
-                if (!previousWasCarriageReturn) {
-                    line++;
-                }
-                column = 0;
-                previousWasCarriageReturn = false;
             }
             else {
                 column++;
-                previousWasCarriageReturn = false;
             }
         }
     };

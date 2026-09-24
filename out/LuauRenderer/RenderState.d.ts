@@ -17,7 +17,7 @@ export declare class RenderState {
     indented(text: string): string;
     line(text: string, endNode?: luau.Statement): string;
     block<T>(callback: () => T): T;
-    private layout;
+    layout(text: string): RenderFragment;
     newlineFragment(fragment: RenderFragment): RenderFragment;
     indentedFragment(fragment: RenderFragment): RenderFragment;
     lineFragment(fragment: RenderFragment, endNode?: luau.Statement): RenderFragment;

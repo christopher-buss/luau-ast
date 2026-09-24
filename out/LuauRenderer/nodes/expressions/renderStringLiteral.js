@@ -5,6 +5,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.renderStringLiteral = void 0;
 const LuauAST_1 = __importDefault(require("../../../LuauAST"));
+const Fragment_1 = require("../../Fragment");
 const getSafeBracketEquals_1 = require("../../util/getSafeBracketEquals");
 function needsBracketSpacing(node) {
     const parent = node.parent;
@@ -35,8 +36,8 @@ function renderStringLiteral(state, node) {
     }
     else {
         const eqStr = (0, getSafeBracketEquals_1.getSafeBracketEquals)(node.value);
-        const spacing = needsBracketSpacing(node) ? " " : "";
-        return `${spacing}[${eqStr}[${node.value}]${eqStr}]${spacing}`;
+        const spacing = needsBracketSpacing(node) ? state.layout(" ") : "";
+        return (0, Fragment_1.concat)(spacing, `[${eqStr}[${node.value}]${eqStr}]`, spacing);
     }
 }
 exports.renderStringLiteral = renderStringLiteral;

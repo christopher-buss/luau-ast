@@ -9,7 +9,7 @@ const LuauRenderer_1 = require("../..");
 const Fragment_1 = require("../../Fragment");
 const renderStatements_1 = require("../../util/renderStatements");
 function renderRepeatStatement(state, node) {
-    return (0, Fragment_1.concat)(state.lineFragment("repeat"), state.block(() => (0, renderStatements_1.renderStatementsFragment)(state, node.statements)), state.lineFragment((0, Fragment_1.concat)(state.markClosing(node), "until ", (0, LuauRenderer_1.renderNode)(state, node.condition))));
+    return (0, Fragment_1.concat)(state.lineFragment(`repeat`), state.block(() => (0, renderStatements_1.renderStatementsFragment)(state, node.statements)), state.lineFragment((0, Fragment_1.concat)(state.markClosing(node), "until ", (0, LuauRenderer_1.renderNode)(state, node.condition))));
 }
 exports.renderRepeatStatement = renderRepeatStatement;
 //# sourceMappingURL=renderRepeatStatement.js.map

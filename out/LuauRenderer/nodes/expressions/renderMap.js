@@ -11,7 +11,7 @@ function renderMap(state, node) {
     if (LuauAST_1.default.list.isEmpty(node.fields)) {
         return "{}";
     }
-    const result = new Array("{\n");
+    const result = new Array(state.newlineFragment("{"));
     state.block(() => {
         LuauAST_1.default.list.forEach(node.fields, field => result.push(state.lineFragment((0, Fragment_1.concat)((0, LuauRenderer_1.renderNode)(state, field), ","))));
     });

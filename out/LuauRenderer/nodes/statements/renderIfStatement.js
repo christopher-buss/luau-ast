@@ -21,7 +21,7 @@ function renderIfStatement(state, node) {
     let tail = "";
     if (currentElseBody && LuauAST_1.default.list.isNonEmpty(currentElseBody)) {
         const statements = currentElseBody;
-        tail = (0, Fragment_1.concat)(state.lineFragment("else"), state.block(() => (0, renderStatements_1.renderStatementsFragment)(state, statements)));
+        tail = (0, Fragment_1.concat)(state.lineFragment(`else`), state.block(() => (0, renderStatements_1.renderStatementsFragment)(state, statements)));
     }
     for (let i = elseIfs.length - 1; i >= 0; i--) {
         const [elseIf, elseIfHead] = elseIfs[i];

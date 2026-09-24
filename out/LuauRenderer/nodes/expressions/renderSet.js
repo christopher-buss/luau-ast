@@ -11,7 +11,7 @@ function renderSet(state, node) {
     if (LuauAST_1.default.list.isEmpty(node.members)) {
         return "{}";
     }
-    const result = new Array("{\n");
+    const result = new Array(state.newlineFragment("{"));
     state.block(() => {
         LuauAST_1.default.list.forEach(node.members, member => {
             if (LuauAST_1.default.isStringLiteral(member) && LuauAST_1.default.isValidIdentifier(member.value)) {
