@@ -10,7 +10,7 @@ const config: Config = {
 		"^(LuauAST|LuauRenderer)$": "<rootDir>/src/$1",
 	},
 	transform: {
-		"^.+\.tsx?$": ["ts-jest", { tsconfig: "tests/tsconfig.json" }],
+		"^.+\\.tsx?$": ["ts-jest", { tsconfig: "tests/tsconfig.json" }],
 	},
 };
 

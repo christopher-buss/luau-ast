@@ -28,7 +28,7 @@ interface ClosingFragment {
 	node: luau.Node;
 }
 
-/** indentation and line breaks, which are not part of any node's range */
+/** whitespace which separates code, like indentation and line breaks, and is not part of any node's range */
 interface LayoutFragment {
 	kind: "layout";
 	text: string;
@@ -96,7 +96,7 @@ type StackEntry = RenderFragment | { kind: "end"; active: ActiveNode };
 /**
  * Returns the code of a fragment and the generated range of each node occurrence, in order of appearance.
  *
- * Lines and columns are zero-based, and columns count UTF-16 code units.
+ * Lines and columns are zero-based, lines are separated by `\n`, and columns count UTF-16 code units.
  * A range starts at a node's first character and ends after its last character, excluding layout.
  */
 export function flattenFragment(fragment: RenderFragment) {
@@ -105,24 +105,14 @@ export function flattenFragment(fragment: RenderFragment) {
 
 	let line = 0;
 	let column = 0;
-	let previousWasCarriageReturn = false;
 	const advance = (text: string) => {
 		for (let i = 0; i < text.length; i++) {
-			const character = text.charCodeAt(i);
-			if (character === 13 /* \r */) {
+			// like the Luau lexer, only `\n` starts a new line
+			if (text.charCodeAt(i) === 10) {
 				line++;
 				column = 0;
-				previousWasCarriageReturn = true;
-			} else if (character === 10 /* \n */) {
-				// `\r\n` is a single line break
-				if (!previousWasCarriageReturn) {
-					line++;
-				}
-				column = 0;
-				previousWasCarriageReturn = false;
 			} else {
 				column++;
-				previousWasCarriageReturn = false;
 			}
 		}
 	};

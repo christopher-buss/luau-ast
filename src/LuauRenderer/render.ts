@@ -155,8 +155,8 @@ export interface RenderResultWithPositions {
 /**
  * Returns the same code as `renderAST()`, and the generated range of each rendered node, in order of appearance.
  *
- * Lines and columns are zero-based, and columns count UTF-16 code units.
- * A range starts at a node's first character and ends after its last character, excluding indentation and line breaks.
+ * Lines and columns are zero-based, lines are separated by `\n`, and columns count UTF-16 code units.
+ * A range starts at a node's first character and ends after its last character, excluding whitespace like indentation.
  * Nodes which end with a keyword like `end` or `until` also report where that keyword begins as `closing`.
  */
 export function renderASTWithPositions(ast: luau.List<luau.Statement>): RenderResultWithPositions {

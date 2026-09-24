@@ -5,7 +5,7 @@ import { renderStatementsFragment } from "LuauRenderer/util/renderStatements";
 
 export function renderRepeatStatement(state: RenderState, node: luau.RepeatStatement) {
 	return concat(
-		state.lineFragment("repeat"),
+		state.lineFragment(`repeat`),
 		state.block(() => renderStatementsFragment(state, node.statements)),
 		state.lineFragment(concat(state.markClosing(node), "until ", renderNode(state, node.condition))),
 	);

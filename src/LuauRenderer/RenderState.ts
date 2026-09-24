@@ -111,7 +111,10 @@ export class RenderState {
 		return result;
 	}
 
-	private layout(text: string) {
+	/**
+	 * Marks `text` as whitespace which separates code and is not part of any node's range.
+	 */
+	public layout(text: string) {
 		return this.includePositions && text !== "" ? markLayout(text) : text;
 	}
 

@@ -25,7 +25,7 @@ export function renderIfStatement(state: RenderState, node: luau.IfStatement) {
 	if (currentElseBody && luau.list.isNonEmpty(currentElseBody)) {
 		const statements = currentElseBody;
 		tail = concat(
-			state.lineFragment("else"),
+			state.lineFragment(`else`),
 			state.block(() => renderStatementsFragment(state, statements)),
 		);
 	}

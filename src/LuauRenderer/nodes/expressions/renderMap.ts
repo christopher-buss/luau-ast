@@ -7,7 +7,7 @@ export function renderMap(state: RenderState, node: luau.Map) {
 		return "{}";
 	}
 
-	const result = new Array<RenderFragment>("{\n");
+	const result = new Array<RenderFragment>(state.newlineFragment("{"));
 	state.block(() => {
 		luau.list.forEach(node.fields, field => result.push(state.lineFragment(concat(renderNode(state, field), ","))));
 	});
