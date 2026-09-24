@@ -1,15 +1,14 @@
 import luau from "LuauAST";
 import { assert } from "LuauAST/util/assert";
+import { renderNode, RenderState } from "LuauRenderer";
 import { concat, join, RenderFragment } from "LuauRenderer/Fragment";
-import { renderNode } from "LuauRenderer/render";
-import { RenderState } from "LuauRenderer/RenderState";
 
 export function renderAssignment(state: RenderState, node: luau.Assignment) {
 	let left: RenderFragment;
 	if (luau.list.isList(node.left)) {
 		assert(!luau.list.isEmpty(node.left));
 		left = join(
-			luau.list.mapToArray(node.left, identifier => renderNode(state, identifier)),
+			luau.list.mapToArray(node.left, id => renderNode(state, id)),
 			", ",
 		);
 	} else {
@@ -27,5 +26,5 @@ export function renderAssignment(state: RenderState, node: luau.Assignment) {
 		right = renderNode(state, node.right);
 	}
 
-	return state.fragmentLine(concat(left, ` ${node.operator} `, right), node);
+	return state.lineFragment(concat(left, ` ${node.operator} `, right), node);
 }

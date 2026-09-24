@@ -1,17 +1,16 @@
 import luau from "LuauAST";
+import { renderNode, RenderState } from "LuauRenderer";
 import { concat, RenderFragment, sequence } from "LuauRenderer/Fragment";
-import { renderNode } from "LuauRenderer/render";
-import { RenderState } from "LuauRenderer/RenderState";
 
 export function renderMap(state: RenderState, node: luau.Map) {
 	if (luau.list.isEmpty(node.fields)) {
 		return "{}";
 	}
 
-	const fields = new Array<RenderFragment>();
+	const result = new Array<RenderFragment>("{\n");
 	state.block(() => {
-		luau.list.forEach(node.fields, field => fields.push(state.fragmentLine(concat(renderNode(state, field), ","))));
-		return "";
+		luau.list.forEach(node.fields, field => result.push(state.lineFragment(concat(renderNode(state, field), ","))));
 	});
-	return sequence(["{\n", ...fields, state.fragmentIndented("}")]);
+	result.push(state.indentedFragment("}"));
+	return sequence(result);
 }

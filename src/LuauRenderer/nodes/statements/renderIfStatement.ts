@@ -1,41 +1,40 @@
 import luau from "LuauAST";
+import { renderNode, RenderState } from "LuauRenderer";
 import { concat, RenderFragment } from "LuauRenderer/Fragment";
-import { renderNode } from "LuauRenderer/render";
-import { RenderState } from "LuauRenderer/RenderState";
 import { renderStatementsFragment } from "LuauRenderer/util/renderStatements";
 
 export function renderIfStatement(state: RenderState, node: luau.IfStatement) {
-	const alternatives = new Array<{ node: luau.IfStatement; content: RenderFragment }>();
+	const head = concat(
+		state.lineFragment(concat("if ", renderNode(state, node.condition), " then")),
+		state.block(() => renderStatementsFragment(state, node.statements)),
+	);
+
+	const elseIfs = new Array<[luau.IfStatement, RenderFragment]>();
 	let currentElseBody = node.elseBody;
 	while (luau.isNode(currentElseBody)) {
-		const elseifNode = currentElseBody;
-		alternatives.push({
-			node: elseifNode,
-			content: concat(
-				state.fragmentLine(concat("elseif ", renderNode(state, elseifNode.condition), " then")),
-				state.block(() => renderStatementsFragment(state, elseifNode.statements)),
-			),
-		});
+		const statements = currentElseBody.statements;
+		const elseIfHead = concat(
+			state.lineFragment(concat("elseif ", renderNode(state, currentElseBody.condition), " then")),
+			state.block(() => renderStatementsFragment(state, statements)),
+		);
+		elseIfs.push([currentElseBody, elseIfHead]);
 		currentElseBody = currentElseBody.elseBody;
 	}
 
-	let alternative: RenderFragment = "";
+	let tail: RenderFragment = "";
 	if (currentElseBody && luau.list.isNonEmpty(currentElseBody)) {
-		const elseStatements = currentElseBody;
-		alternative = concat(
-			state.fragmentLine("else"),
-			state.block(() => renderStatementsFragment(state, elseStatements)),
+		const statements = currentElseBody;
+		tail = concat(
+			state.lineFragment("else"),
+			state.block(() => renderStatementsFragment(state, statements)),
 		);
 	}
-	for (let index = alternatives.length - 1; index >= 0; index--) {
-		const elseifNode = alternatives[index];
-		alternative = state.fragmentNode(elseifNode.node, concat(elseifNode.content, alternative));
+
+	// each `elseif` is a nested luau.IfStatement which includes all of the branches after it
+	for (let i = elseIfs.length - 1; i >= 0; i--) {
+		const [elseIf, elseIfHead] = elseIfs[i];
+		tail = state.markNode(elseIf, concat(elseIfHead, tail));
 	}
 
-	return concat(
-		state.fragmentLine(concat("if ", renderNode(state, node.condition), " then")),
-		state.block(() => renderStatementsFragment(state, node.statements)),
-		alternative,
-		state.fragmentClosingLine(node, "end"),
-	);
+	return concat(head, tail, state.lineFragment(concat(state.markClosing(node), "end")));
 }

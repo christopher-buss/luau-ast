@@ -4,12 +4,12 @@ This project takes a Luau AST (from LuauAST) and converts it into Luau source co
 
 ## Structure
 
-**render.ts** - routes each node to its `renderX()` function and exposes the string and generated-position rendering APIs
+**index.ts** - contains the global render function, takes any node and routes it to the appropriate `renderX()` function to turn it into a string
 
-**RenderState.ts** - stores the current rendering state and the shared formatting operations
+**RenderState.ts** - stores the current state of the render process, instance is passed into every `renderX()` function
 
-**Fragment.ts** - composes the renderer output and measures node ranges while flattening the emitted text once
+**Fragment.ts** - builds rendered code which can be marked with node positions, and turns it into a string
 
-**nodes/** - contains each node's layout function; layouts compose fragments that become strings at the public boundary
+**nodes/** - folder containing modules that each export a `renderX(state: RenderState, node: luau.X): RenderFragment` function
 
 **util/** - various helper modules to aid in rendering

@@ -1,6 +1,6 @@
 import luau from "LuauAST";
 import { assert } from "LuauAST/util/assert";
-import { concat, flattenFragment, markClosing, markNode, RenderFragment } from "LuauRenderer/Fragment";
+import { concat, markClosing, markLayout, markNode, RenderFragment } from "LuauRenderer/Fragment";
 import { getEnding } from "LuauRenderer/util/getEnding";
 import { getOrSetDefault } from "LuauRenderer/util/getOrSetDefault";
 
@@ -15,6 +15,9 @@ export class RenderState {
 	public seenTempNodes = new Map<number, string>();
 	private readonly listNodesStack = new Array<luau.ListNode<luau.Statement>>();
 
+	/**
+	 * @param includePositions Whether to mark nodes in rendered fragments so their positions can be measured.
+	 */
 	public constructor(public readonly includePositions = false) {}
 
 	/**
@@ -72,7 +75,7 @@ export class RenderState {
 	 * @param text The text.
 	 */
 	public newline(text: string) {
-		return flattenFragment(this.fragmentNewline(text)).code;
+		return text + "\n";
 	}
 
 	/**
@@ -80,7 +83,7 @@ export class RenderState {
 	 * @param text The text.
 	 */
 	public indented(text: string) {
-		return flattenFragment(this.fragmentIndented(text)).code;
+		return this.indent + text;
 	}
 
 	/**
@@ -89,7 +92,12 @@ export class RenderState {
 	 * @param endNode Node used to determine if a semicolon should be added. Undefined means no semi will be added.
 	 */
 	public line(text: string, endNode?: luau.Statement) {
-		return flattenFragment(this.fragmentLine(text, endNode)).code;
+		let result = this.indented(text);
+		if (endNode) {
+			result += getEnding(this, endNode);
+		}
+		result = this.newline(result);
+		return result;
 	}
 
 	/**
@@ -103,27 +111,45 @@ export class RenderState {
 		return result;
 	}
 
-	public fragmentNewline(text: RenderFragment): RenderFragment {
-		return concat(text, "\n");
+	private layout(text: string) {
+		return this.includePositions && text !== "" ? markLayout(text) : text;
 	}
 
-	public fragmentIndented(text: RenderFragment): RenderFragment {
-		return concat(this.indent, text);
+	/**
+	 * Like `newline()`, but for fragments.
+	 */
+	public newlineFragment(fragment: RenderFragment) {
+		return concat(fragment, this.layout("\n"));
 	}
 
-	public fragmentLine(text: RenderFragment, endNode?: luau.Statement): RenderFragment {
-		return concat(this.fragmentIndented(text), endNode ? getEnding(this, endNode) : "", "\n");
+	/**
+	 * Like `indented()`, but for fragments.
+	 */
+	public indentedFragment(fragment: RenderFragment) {
+		return concat(this.layout(this.indent), fragment);
 	}
 
-	public fragmentClosing(node: luau.Node): RenderFragment {
-		return this.includePositions ? markClosing(node) : "";
+	/**
+	 * Like `line()`, but for fragments.
+	 */
+	public lineFragment(fragment: RenderFragment, endNode?: luau.Statement) {
+		if (endNode) {
+			fragment = concat(fragment, getEnding(this, endNode));
+		}
+		return this.newlineFragment(this.indentedFragment(fragment));
 	}
 
-	public fragmentClosingLine(node: luau.Node, text: RenderFragment): RenderFragment {
-		return this.fragmentLine(concat(this.fragmentClosing(node), text));
-	}
-
-	public fragmentNode(node: luau.Node, content: RenderFragment): RenderFragment {
+	/**
+	 * Marks `content` as the rendered code of `node`.
+	 */
+	public markNode(node: luau.Node, content: RenderFragment) {
 		return this.includePositions ? markNode(node, content) : content;
+	}
+
+	/**
+	 * Marks where the closing keyword of `node`, like `end` or `until`, begins.
+	 */
+	public markClosing(node: luau.Node) {
+		return this.includePositions ? markClosing(node) : "";
 	}
 }

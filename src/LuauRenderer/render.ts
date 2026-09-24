@@ -1,7 +1,7 @@
 import luau from "LuauAST";
 import { assert } from "LuauAST/util/assert";
 import { getKindName } from "LuauAST/util/getKindName";
-import { flattenFragment, markNode, RenderedNodePosition, RenderFragment } from "LuauRenderer/Fragment";
+import { flattenFragment, fragmentToString, RenderedNodePosition, RenderFragment } from "LuauRenderer/Fragment";
 import { renderCallExpression } from "LuauRenderer/nodes/expressions/indexable/renderCallExpression";
 import { renderComputedIndexExpression } from "LuauRenderer/nodes/expressions/indexable/renderComputedIndexExpression";
 import { renderIdentifier } from "LuauRenderer/nodes/expressions/indexable/renderIdentifier";
@@ -102,14 +102,17 @@ const KIND_TO_RENDERER = identity<{ [K in luau.SyntaxKind]: Renderer<K> }>({
  * @param node The node to render as Luau code.
  */
 export function render<T extends luau.SyntaxKind>(state: RenderState, node: luau.Node<T>): string {
-	return flattenFragment(renderNode(state, node)).code;
+	return fragmentToString(renderNode(state, node));
 }
 
-/** @internal */
+/**
+ * Like `render()`, but returns a fragment that can contain position markers.
+ * @param state The state of the current rendering process.
+ * @param node The node to render as Luau code.
+ */
 export function renderNode<T extends luau.SyntaxKind>(state: RenderState, node: luau.Node<T>): RenderFragment {
 	// eslint-disable-next-line @typescript-eslint/no-explicit-any
-	const content = KIND_TO_RENDERER[node.kind](state, node as any);
-	return state.includePositions ? markNode(node, content) : content;
+	return state.markNode(node, KIND_TO_RENDERER[node.kind](state, node as any));
 }
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -141,20 +144,25 @@ export function renderAST(ast: luau.List<luau.Statement>): string {
 	// useful for visualizing the Luau AST structure
 	// debugAST(ast);
 
-	return flattenFragment(renderStatementsFragment(state, ast)).code;
+	return fragmentToString(renderStatementsFragment(state, ast));
 }
 
 export interface RenderResultWithPositions {
 	code: string;
-	positions: ReadonlyArray<RenderedNodePosition>;
+	positions: Array<RenderedNodePosition>;
 }
 
 /**
- * Renders a syntax tree and reports the exact generated range of each emitted node.
- * Positions are zero-based UTF-16 line and column offsets.
+ * Returns the same code as `renderAST()`, and the generated range of each rendered node, in order of appearance.
+ *
+ * Lines and columns are zero-based, and columns count UTF-16 code units.
+ * A range starts at a node's first character and ends after its last character, excluding indentation and line breaks.
+ * Nodes which end with a keyword like `end` or `until` also report where that keyword begins as `closing`.
  */
 export function renderASTWithPositions(ast: luau.List<luau.Statement>): RenderResultWithPositions {
 	const state = new RenderState(true);
+
 	solveTempIds(state, ast);
-	return flattenFragment(renderStatementsFragment(state, ast), true);
+
+	return flattenFragment(renderStatementsFragment(state, ast));
 }

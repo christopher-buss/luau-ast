@@ -1,14 +1,15 @@
 import luau from "LuauAST";
 
 // base types
-export interface SourcePosition {
+export interface Position {
 	line: number;
 	column: number;
 }
 
+/** The location in the original source that a node was created from */
 export interface NodeOrigin {
-	start: SourcePosition;
-	closing?: SourcePosition;
+	start: Position;
+	closing?: Position;
 }
 
 export interface BaseNode<T extends luau.SyntaxKind = luau.SyntaxKind> {

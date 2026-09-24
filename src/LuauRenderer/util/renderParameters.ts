@@ -1,22 +1,16 @@
 import luau from "LuauAST";
-import { flattenFragment, join, RenderFragment } from "LuauRenderer/Fragment";
-import { renderNode } from "LuauRenderer/render";
-import { RenderState } from "LuauRenderer/RenderState";
+import { renderNode, RenderState } from "LuauRenderer";
+import { join } from "LuauRenderer/Fragment";
 
 /**
- * Renders the given list of identifiers inside of `node` into a string sepearted by commas
+ * Renders the given list of identifiers inside of `node` into a fragment sepearted by commas
  *
  * Adds `...` onto the end if node.hasDotDotDot is true
  */
 export function renderParameters(state: RenderState, node: luau.HasParameters) {
-	return flattenFragment(renderParametersFragment(state, node)).code;
-}
-
-/** @internal */
-export function renderParametersFragment(state: RenderState, node: luau.HasParameters): RenderFragment {
-	const parameters = luau.list.mapToArray(node.parameters, parameter => renderNode(state, parameter));
+	const params = luau.list.mapToArray(node.parameters, param => renderNode(state, param));
 	if (node.hasDotDotDot) {
-		parameters.push("...");
+		params.push("...");
 	}
-	return join(parameters, ", ");
+	return join(params, ", ");
 }

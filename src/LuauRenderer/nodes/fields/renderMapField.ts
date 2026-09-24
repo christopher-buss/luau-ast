@@ -1,14 +1,14 @@
 import luau from "LuauAST";
+import { renderNode, RenderState } from "LuauRenderer";
 import { concat } from "LuauRenderer/Fragment";
-import { renderNode } from "LuauRenderer/render";
-import { RenderState } from "LuauRenderer/RenderState";
 
 export function renderMapField(state: RenderState, node: luau.MapField) {
 	const { index, value } = node;
-	const renderedValue = renderNode(state, value);
+	const valueFragment = renderNode(state, value);
 	if (luau.isStringLiteral(index) && luau.isValidIdentifier(index.value)) {
-		return concat(state.fragmentNode(index, index.value), " = ", renderedValue);
+		return concat(state.markNode(index, index.value), " = ", valueFragment);
 	} else {
-		return concat("[", renderNode(state, index), "] = ", renderedValue);
+		const indexFragment = renderNode(state, index);
+		return concat("[", indexFragment, "] = ", valueFragment);
 	}
 }

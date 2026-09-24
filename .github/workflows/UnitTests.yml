@@ -39,6 +39,11 @@ jobs:
           npm install
           npm run build
 
+      - name: Run luau-ast Tests
+        run: |
+          cd luau-ast
+          npm test
+
       - name: Setup roblox-ts repo
         run: |
           cd roblox-ts
@@ -46,10 +51,6 @@ jobs:
           npm install
           npm install --install-links ../luau-ast
           npm run update-test-types
-
-      - name: Run luau-ast Tests
-        working-directory: luau-ast
-        run: npm test
 
       - name: Run Tests
         run: |

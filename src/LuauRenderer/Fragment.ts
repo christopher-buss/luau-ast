@@ -1,14 +1,10 @@
 import luau from "LuauAST";
-
-export interface GeneratedPosition {
-	line: number;
-	column: number;
-}
+import { assert } from "LuauAST/util/assert";
 
 export interface GeneratedRange {
-	start: GeneratedPosition;
-	end: GeneratedPosition;
-	closing?: GeneratedPosition;
+	start: luau.Position;
+	end: luau.Position;
+	closing?: luau.Position;
 }
 
 export interface RenderedNodePosition {
@@ -32,9 +28,22 @@ interface ClosingFragment {
 	node: luau.Node;
 }
 
-export type RenderFragment = string | SequenceFragment | NodeFragment | ClosingFragment;
+/** indentation and line breaks, which are not part of any node's range */
+interface LayoutFragment {
+	kind: "layout";
+	text: string;
+}
 
-export function concat(...parts: ReadonlyArray<RenderFragment>): RenderFragment {
+/**
+ * Rendered Luau code. Fragments other than strings are only created when positions are requested.
+ */
+export type RenderFragment = string | SequenceFragment | NodeFragment | ClosingFragment | LayoutFragment;
+
+export function concat(...parts: Array<RenderFragment>): RenderFragment {
+	return sequence(parts);
+}
+
+export function sequence(parts: ReadonlyArray<RenderFragment>): RenderFragment {
 	let result = "";
 	for (const part of parts) {
 		if (typeof part !== "string") {
@@ -45,23 +54,13 @@ export function concat(...parts: ReadonlyArray<RenderFragment>): RenderFragment 
 	return result;
 }
 
-export function sequence(parts: ReadonlyArray<RenderFragment>): RenderFragment {
-	if (parts.every(part => typeof part === "string")) {
-		return (parts as ReadonlyArray<string>).join("");
-	}
-	return { kind: "sequence", parts };
-}
-
 export function join(parts: ReadonlyArray<RenderFragment>, separator: string): RenderFragment {
-	if (parts.every(part => typeof part === "string")) {
-		return (parts as ReadonlyArray<string>).join(separator);
-	}
 	const result = new Array<RenderFragment>();
-	for (let index = 0; index < parts.length; index++) {
-		if (index > 0) {
+	for (let i = 0; i < parts.length; i++) {
+		if (i > 0) {
 			result.push(separator);
 		}
-		result.push(parts[index]);
+		result.push(parts[i]);
 	}
 	return sequence(result);
 }
@@ -74,93 +73,111 @@ export function markClosing(node: luau.Node): RenderFragment {
 	return { kind: "closing", node };
 }
 
-function copyPosition(position: GeneratedPosition): GeneratedPosition {
-	return { line: position.line, column: position.column };
+export function markLayout(text: string): RenderFragment {
+	return { kind: "layout", text };
 }
 
-function advance(position: GeneratedPosition & { previousWasCarriageReturn: boolean }, text: string) {
-	for (let index = 0; index < text.length; index++) {
-		const character = text.charCodeAt(index);
-		if (character === 13) {
-			position.line++;
-			position.column = 0;
-			position.previousWasCarriageReturn = true;
-		} else if (character === 10) {
-			if (!position.previousWasCarriageReturn) {
-				position.line++;
-			}
-			position.column = 0;
-			position.previousWasCarriageReturn = false;
-		} else {
-			position.column++;
-			position.previousWasCarriageReturn = false;
-		}
-	}
-}
-
-export function flattenFragment(fragment: RenderFragment, includePositions = false) {
+/** Returns the code of a fragment, ignoring any position markers. */
+export function fragmentToString(fragment: RenderFragment): string {
 	if (typeof fragment === "string") {
-		return { code: fragment, positions: new Array<RenderedNodePosition>() };
+		return fragment;
 	}
-	let code = "";
-	const position = { line: 0, column: 0, previousWasCarriageReturn: false };
-	const positions = new Array<RenderedNodePosition>();
-	const activeNodes = new Array<{ node: luau.Node; closing?: GeneratedPosition }>();
-	type StackEntry = RenderFragment | { kind: "end-node"; active: (typeof activeNodes)[number]; resultIndex: number };
-	const stack = new Array<StackEntry>(fragment);
+	return flattenFragment(fragment).code;
+}
 
+interface ActiveNode {
+	node: luau.Node;
+	result: RenderedNodePosition;
+	hasContent: boolean;
+}
+
+type StackEntry = RenderFragment | { kind: "end"; active: ActiveNode };
+
+/**
+ * Returns the code of a fragment and the generated range of each node occurrence, in order of appearance.
+ *
+ * Lines and columns are zero-based, and columns count UTF-16 code units.
+ * A range starts at a node's first character and ends after its last character, excluding layout.
+ */
+export function flattenFragment(fragment: RenderFragment) {
+	let code = "";
+	const positions = new Array<RenderedNodePosition>();
+
+	let line = 0;
+	let column = 0;
+	let previousWasCarriageReturn = false;
+	const advance = (text: string) => {
+		for (let i = 0; i < text.length; i++) {
+			const character = text.charCodeAt(i);
+			if (character === 13 /* \r */) {
+				line++;
+				column = 0;
+				previousWasCarriageReturn = true;
+			} else if (character === 10 /* \n */) {
+				// `\r\n` is a single line break
+				if (!previousWasCarriageReturn) {
+					line++;
+				}
+				column = 0;
+				previousWasCarriageReturn = false;
+			} else {
+				column++;
+				previousWasCarriageReturn = false;
+			}
+		}
+	};
+
+	let contentEndLine = 0;
+	let contentEndColumn = 0;
+	const activeNodes = new Array<ActiveNode>();
+	let firstActiveWithoutContent = 0;
+
+	// iterative to support deeply nested and very long fragments
+	const stack = new Array<StackEntry>(fragment);
 	while (stack.length > 0) {
 		const current = stack.pop()!;
 		if (typeof current === "string") {
-			code += current;
-			if (includePositions) {
-				advance(position, current);
-			}
-			continue;
-		}
-		if (current.kind === "sequence") {
-			for (let index = current.parts.length - 1; index >= 0; index--) {
-				stack.push(current.parts[index]);
-			}
-			continue;
-		}
-		if (current.kind === "closing") {
-			if (includePositions) {
-				for (let index = activeNodes.length - 1; index >= 0; index--) {
-					const active = activeNodes[index];
-					if (active.node === current.node) {
-						active.closing = copyPosition(position);
-						break;
-					}
+			if (current.length > 0) {
+				for (let i = firstActiveWithoutContent; i < activeNodes.length; i++) {
+					activeNodes[i].result.range.start = { line, column };
+					activeNodes[i].hasContent = true;
 				}
+				firstActiveWithoutContent = activeNodes.length;
+				code += current;
+				advance(current);
+				contentEndLine = line;
+				contentEndColumn = column;
 			}
-			continue;
-		}
-		if (current.kind === "end-node") {
-			const result = positions[current.resultIndex];
-			result.range.end = copyPosition(position);
-			if (current.active.closing) {
-				result.range.closing = current.active.closing;
+		} else if (current.kind === "layout") {
+			code += current.text;
+			advance(current.text);
+		} else if (current.kind === "sequence") {
+			for (let i = current.parts.length - 1; i >= 0; i--) {
+				stack.push(current.parts[i]);
 			}
-			activeNodes.pop();
-			continue;
-		}
-		if (!includePositions) {
-			stack.push(current.content);
-			continue;
-		}
-
-		const active: { node: luau.Node; closing?: GeneratedPosition } = { node: current.node };
-		activeNodes.push(active);
-		const resultIndex =
-			positions.push({
+		} else if (current.kind === "node") {
+			const result: RenderedNodePosition = {
 				node: current.node,
-				range: {
-					start: copyPosition(position),
-					end: copyPosition(position),
-				},
-			}) - 1;
-		stack.push({ kind: "end-node", active, resultIndex }, current.content);
+				range: { start: { line, column }, end: { line, column } },
+			};
+			positions.push(result);
+			const active: ActiveNode = { node: current.node, result, hasContent: false };
+			activeNodes.push(active);
+			stack.push({ kind: "end", active }, current.content);
+		} else if (current.kind === "closing") {
+			const active = activeNodes[activeNodes.length - 1];
+			assert(active?.node === current.node, "Closing keyword must be rendered by its own node");
+			active.result.range.closing = { line, column };
+		} else {
+			const { active } = current;
+			// empty nodes keep an empty range at the position where they were rendered
+			active.result.range.end = active.hasContent
+				? { line: contentEndLine, column: contentEndColumn }
+				: { ...active.result.range.start };
+			activeNodes.pop();
+			firstActiveWithoutContent = Math.min(firstActiveWithoutContent, activeNodes.length);
+		}
 	}
+
 	return { code, positions };
 }

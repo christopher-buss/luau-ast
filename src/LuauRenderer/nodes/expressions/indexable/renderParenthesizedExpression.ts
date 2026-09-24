@@ -1,7 +1,6 @@
 import luau from "LuauAST";
+import { renderNode, RenderState } from "LuauRenderer";
 import { concat } from "LuauRenderer/Fragment";
-import { renderNode } from "LuauRenderer/render";
-import { RenderState } from "LuauRenderer/RenderState";
 
 export function renderParenthesizedExpression(state: RenderState, node: luau.ParenthesizedExpression) {
 	// skip nested parentheses

@@ -1,7 +1,6 @@
 import luau from "LuauAST";
+import { renderNode, RenderState } from "LuauRenderer";
 import { concat, RenderFragment, sequence } from "LuauRenderer/Fragment";
-import { renderNode } from "LuauRenderer/render";
-import { RenderState } from "LuauRenderer/RenderState";
 
 export function renderInterpolatedString(state: RenderState, node: luau.InterpolatedString) {
 	const result = new Array<RenderFragment>("`");
@@ -15,7 +14,8 @@ export function renderInterpolatedString(state: RenderState, node: luau.Interpol
 			if (luau.isTable(part)) {
 				expression = concat("(", expression, ")");
 			}
-			result.push(expression, "}");
+			result.push(expression);
+			result.push("}");
 		}
 	});
 	result.push("`");
