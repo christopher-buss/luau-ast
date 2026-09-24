@@ -1,0 +1,1 @@
+{"version":3,"file":"renderCallStatement.js","sourceRoot":"","sources":["../../../../src/LuauRenderer/nodes/statements/renderCallStatement.ts"],"names":[],"mappings":";;;;;;AAAA,+DAA2B;AAC3B,wCAAuD;AAEvD,SAAgB,mBAAmB,CAAC,KAAkB,EAAE,IAAwB;IAC/E,OAAO,KAAK,CAAC,YAAY,CAAC,IAAA,yBAAU,EAAC,KAAK,EAAE,IAAI,CAAC,UAAU,CAAC,EAAE,IAAI,CAAC,CAAC;AACrE,CAAC;AAFD,kDAEC"}

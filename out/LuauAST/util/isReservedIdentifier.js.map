@@ -1,0 +1,1 @@
+{"version":3,"file":"isReservedIdentifier.js","sourceRoot":"","sources":["../../../src/LuauAST/util/isReservedIdentifier.ts"],"names":[],"mappings":";;;AAAA,6CAA+C;AAE/C,SAAgB,oBAAoB,CAAC,EAAU;IAC9C,OAAO,MAAM,CAAC,SAAS,CAAC,cAAc,CAAC,IAAI,CAAC,iBAAO,EAAE,EAAE,CAAC,CAAC;AAC1D,CAAC;AAFD,oDAEC"}

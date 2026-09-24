@@ -1,0 +1,1 @@
+{"version":3,"file":"assert.js","sourceRoot":"","sources":["../../../src/LuauAST/util/assert.ts"],"names":[],"mappings":";;;AAOA,SAAgB,MAAM,CAAC,KAAc,EAAE,OAAgB;IAEtD,IAAI,CAAC,KAAK,EAAE;QACX,QAAQ,CAAC;QACT,MAAM,IAAI,KAAK,CACd,qBAAqB,OAAO,aAAP,OAAO,cAAP,OAAO,GAAI,EAAE,EAAE;YACnC,4DAA4D;YAC5D,iDAAiD,CAClD,CAAC;KACF;AACF,CAAC;AAVD,wBAUC"}
