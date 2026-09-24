@@ -10,9 +10,13 @@ export function renderSet(state: RenderState, node: luau.Set) {
 
 	const members = new Array<RenderFragment>();
 	state.block(() => {
-		luau.list.forEach(node.members, member =>
-			members.push(state.fragmentLine(concat("[", renderNode(state, member), "] = true,"))),
-		);
+		luau.list.forEach(node.members, member => {
+			if (luau.isStringLiteral(member) && luau.isValidIdentifier(member.value)) {
+				members.push(state.fragmentLine(concat(state.fragmentNode(member, member.value), " = true,")));
+			} else {
+				members.push(state.fragmentLine(concat("[", renderNode(state, member), "] = true,")));
+			}
+		});
 		return "";
 	});
 	return sequence(["{\n", ...members, state.fragmentIndented("}")]);
